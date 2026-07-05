@@ -1,2 +1,5 @@
 com\example\todoapp\service\TaskDeleteTest.class
+com\example\todoapp\service\TaskToggleStatusTest.class
+com\example\todoapp\controller\TestExceptionController.class
+com\example\todoapp\controller\GlobalExceptionHandlerTest.class
 com\example\todoapp\service\TaskOptimisticLockingTest.class

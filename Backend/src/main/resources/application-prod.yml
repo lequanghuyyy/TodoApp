@@ -37,3 +37,9 @@ logging:
   level:
     root: WARN
     com.example.todoapp: INFO
+
+# ---- Server Error Config ----
+server:
+  error:
+    include-stacktrace: never
+    include-message: never

@@ -10,6 +10,7 @@ D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\controller\TaskControll
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\package-info.java
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\request\package-info.java
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\request\TaskRequestDTO.java
+D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\response\ErrorResponseDTO.java
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\response\package-info.java
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\response\PageResponseDTO.java
 D:\SRT\TodoApp\Backend\src\main\java\com\example\todoapp\dto\response\TaskResponseDTO.java

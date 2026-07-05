@@ -55,5 +55,14 @@ public interface TaskService {
      * @param id id của task cần xóa.
      */
     void deleteTask(Long id);
+
+    /**
+     * Đổi trạng thái của task (từ PENDING sang COMPLETED và ngược lại).
+     * Áp dụng optimistic locking để chống race condition.
+     *
+     * @param id id của task cần đổi trạng thái.
+     * @return TaskResponseDTO sau khi đổi trạng thái.
+     */
+    TaskResponseDTO toggleStatus(Long id);
 }
 

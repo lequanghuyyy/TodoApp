@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -127,5 +128,17 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * PATCH /api/tasks/{id}/toggle-status — Đổi trạng thái task.
+     *
+     * <p>Xử lý conflict (race condition) qua Optimistic Locking (HTTP 409).
+     * Trả về HTTP 404 nếu không tìm thấy ID.
+     */
+    @PatchMapping("/{id}/toggle-status")
+    public ResponseEntity<TaskResponseDTO> toggleStatus(@PathVariable Long id) {
+        TaskResponseDTO updated = taskService.toggleStatus(id);
+        return ResponseEntity.ok(updated);
     }
 }

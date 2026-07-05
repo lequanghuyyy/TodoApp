@@ -5,6 +5,7 @@ com\example\todoapp\service\TaskService.class
 com\example\todoapp\constant\TaskStatus.class
 com\example\todoapp\exception\package-info.class
 com\example\todoapp\service\package-info.class
+com\example\todoapp\dto\response\ErrorResponseDTO$ErrorResponseDTOBuilder.class
 com\example\todoapp\dto\response\PageResponseDTO.class
 com\example\todoapp\mapper\TaskMapper.class
 com\example\todoapp\constant\TaskSortField.class
@@ -23,6 +24,7 @@ com\example\todoapp\service\impl\TaskServiceImpl.class
 com\example\todoapp\exception\GlobalExceptionHandler.class
 com\example\todoapp\dto\response\TaskResponseDTO.class
 com\example\todoapp\entity\package-info.class
+com\example\todoapp\dto\response\ErrorResponseDTO.class
 com\example\todoapp\service\impl\package-info.class
 com\example\todoapp\controller\package-info.class
 com\example\todoapp\entity\Task.class

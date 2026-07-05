@@ -1,159 +1,132 @@
 package com.example.todoapp.exception;
 
+import com.example.todoapp.dto.response.ErrorResponseDTO;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-/**
- * Global exception handler — bắt tất cả exception phổ biến và trả về
- * response body nhất quán thay vì Spring's default error JSON.
- *
- * Sẽ được hoàn thiện thêm ở issue #1.9 (ResourceNotFoundException, v.v.).
- */
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // ----------------------------------------------------------------
-    // 400 — Validation lỗi (@Valid @RequestBody)
-    // ----------------------------------------------------------------
-
-    /**
-     * Bắt lỗi từ @Valid trên @RequestBody.
-     * Trả về map field → message để client hiển thị ngay dưới từng input.
-     *
-     * Ví dụ response:
-     * {
-     *   "status": 400,
-     *   "error": "Validation Failed",
-     *   "fields": { "title": "Tiêu đề không được để trống" },
-     *   "timestamp": "2026-07-05T18:00:00"
-     * }
-     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidation(
-            MethodArgumentNotValidException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleValidationExceptions(
+            MethodArgumentNotValidException ex, HttpServletRequest request) {
+        
+        log.warn("Validation error at path: {}", request.getRequestURI());
 
-        Map<String, String> fieldErrors = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .collect(Collectors.toMap(
-                        fe -> fe.getField(),
-                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Giá trị không hợp lệ",
-                        // Nếu nhiều lỗi trên cùng 1 field, lấy lỗi đầu tiên
-                        (first, second) -> first
-                ));
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            errors.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
 
-        return ResponseEntity.badRequest().body(errorBody(
-                HttpStatus.BAD_REQUEST, "Validation Failed", fieldErrors));
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("Dữ liệu không hợp lệ")
+                .path(request.getRequestURI())
+                .fieldErrors(errors)
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
-
-    // ----------------------------------------------------------------
-    // 400 — JSON parse error (enum không hợp lệ, sai kiểu dữ liệu)
-    // ----------------------------------------------------------------
-
-    /**
-     * Bắt lỗi khi Jackson không deserialize được request body.
-     * Ví dụ: priority = "URGENT" không nằm trong enum Priority.
-     * Nếu không handle, Spring trả 400 với body mặc định rất khó hiểu.
-     */
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleNotReadable(
-            HttpMessageNotReadableException ex) {
-
-        log.warn("Không đọc được request body: {}", ex.getMessage());
-
-        return ResponseEntity.badRequest().body(errorBody(
-                HttpStatus.BAD_REQUEST,
-                "Request body không hợp lệ — kiểm tra kiểu dữ liệu và giá trị enum",
-                null));
-    }
-
-    // ----------------------------------------------------------------
-    // 400 — Query param sai kiểu / enum (sortBy, sortDir không hợp lệ)
-    // ----------------------------------------------------------------
-
-    /**
-     * Bắt lỗi khi @RequestParam không convert được sang kiểu khai báo.
-     * Ví dụ: sortBy=INVALID_FIELD → MethodArgumentTypeMismatchException.
-     */
-    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(
-            MethodArgumentTypeMismatchException ex) {
-
-        String message = String.format(
-                "Tham số '%s' có giá trị không hợp lệ: '%s'",
-                ex.getName(), ex.getValue());
-
-        return ResponseEntity.badRequest().body(errorBody(
-                HttpStatus.BAD_REQUEST, message, null));
-    }
-
-    // ----------------------------------------------------------------
-    // 404 — Resource Not Found
-    // ----------------------------------------------------------------
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(
-                HttpStatus.NOT_FOUND, ex.getMessage(), null));
+    public ResponseEntity<ErrorResponseDTO> handleResourceNotFoundException(
+            ResourceNotFoundException ex, HttpServletRequest request) {
+        
+        log.warn("Resource not found: {} at path: {}", ex.getMessage(), request.getRequestURI());
+
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message(ex.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
-    // ----------------------------------------------------------------
-    // 409 — Optimistic Locking Conflict
-    // ----------------------------------------------------------------
-
-    /**
-     * Bắt lỗi khi 2 request cùng sửa 1 bản ghi đồng thời.
-     */
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<Map<String, Object>> handleOptimisticLocking(
-            ObjectOptimisticLockingFailureException ex) {
+    public ResponseEntity<ErrorResponseDTO> handleOptimisticLockingFailureException(
+            ObjectOptimisticLockingFailureException ex, HttpServletRequest request) {
+        
+        log.warn("Optimistic locking failure at path: {}", request.getRequestURI());
 
-        log.warn("Conflict version khi update: {}", ex.getMessage());
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.CONFLICT.value())
+                .error(HttpStatus.CONFLICT.getReasonPhrase())
+                .message("Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại và thử lại")
+                .path(request.getRequestURI())
+                .build();
 
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(
-                HttpStatus.CONFLICT,
-                "Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang và thử lại",
-                null));
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
 
-    // ----------------------------------------------------------------
-    // 500 — Fallback cho mọi exception chưa được handle
-    // ----------------------------------------------------------------
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponseDTO> handleHttpMessageNotReadableException(
+            HttpMessageNotReadableException ex, HttpServletRequest request) {
+        
+        log.warn("Malformed JSON request at path: {}", request.getRequestURI());
+
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message("Định dạng dữ liệu không hợp lệ hoặc thiếu thông tin")
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponseDTO> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+        
+        log.warn("Type mismatch error at path: {}", request.getRequestURI());
+        String message = String.format("Tham số '%s' có giá trị không hợp lệ: '%s'", ex.getName(), ex.getValue());
+
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
+                .message(message)
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
-        log.error("Unhandled exception", ex);
-        return ResponseEntity.internalServerError().body(errorBody(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Lỗi hệ thống — vui lòng thử lại sau",
-                null));
-    }
+    public ResponseEntity<ErrorResponseDTO> handleAllUncaughtException(
+            Exception ex, HttpServletRequest request) {
+        
+        log.error("Unknown error occurred at path: {}", request.getRequestURI(), ex);
 
-    // ----------------------------------------------------------------
-    // Helper
-    // ----------------------------------------------------------------
+        ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
+                .message("Đã có lỗi xảy ra, vui lòng thử lại sau")
+                .path(request.getRequestURI())
+                .build();
 
-    private Map<String, Object> errorBody(HttpStatus status, String error, Object detail) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
-        body.put("status", status.value());
-        body.put("error", error);
-        if (detail != null) {
-            body.put("fields", detail);
-        }
-        return body;
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }

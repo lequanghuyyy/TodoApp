@@ -3,6 +3,7 @@ package com.example.todoapp.service;
 import com.example.todoapp.entity.Task;
 import com.example.todoapp.exception.ResourceNotFoundException;
 import com.example.todoapp.repository.TaskRepository;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,9 @@ public class TaskDeleteTest {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private EntityManager entityManager;
+
     @Test
     @Transactional
     public void testDoubleDelete() {
@@ -38,9 +42,10 @@ public class TaskDeleteTest {
         // 2. Lần xoá đầu tiên (phải thành công)
         assertDoesNotThrow(() -> taskService.deleteTask(taskId));
 
-        // Kiểm tra xem database đã cập nhật deleted_at chưa (tuỳ thuộc vào context, 
-        // ở mức độ ServiceTest, ta dùng findByIdIncludeDeleted để xem nếu có native query)
-        // Nhưng theo yêu cầu bài, lần gọi xóa thứ 2 phải throw exception.
+        // Xoá L1 cache để ép Hibernate query DB lại, 
+        // nhờ đó @SQLRestriction mới được áp dụng.
+        entityManager.flush();
+        entityManager.clear();
 
         // 3. Lần xoá thứ hai (mô phỏng double click)
         // Vì Hibernate @SQLRestriction sẽ che các task có deleted_at != null khỏi findById,

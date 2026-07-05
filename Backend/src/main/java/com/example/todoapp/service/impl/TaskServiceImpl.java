@@ -120,5 +120,21 @@ public class TaskServiceImpl implements TaskService {
         task.softDelete();
         taskRepository.save(task);
     }
+
+    @Override
+    @Transactional
+    public TaskResponseDTO toggleStatus(Long id) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy công việc với id: " + id));
+
+        if (task.getStatus() == TaskStatus.PENDING) {
+            task.setStatus(TaskStatus.COMPLETED);
+        } else {
+            task.setStatus(TaskStatus.PENDING);
+        }
+
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponseDTO(saved);
+    }
 }
 
