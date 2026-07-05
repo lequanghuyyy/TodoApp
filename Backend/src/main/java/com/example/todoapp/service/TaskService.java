@@ -36,5 +36,24 @@ public interface TaskService {
      * @return TaskResponseDTO của task vừa persist
      */
     TaskResponseDTO createTask(TaskRequestDTO dto);
+
+    /**
+     * Cập nhật thông tin task hiện có.
+     * Áp dụng optimistic locking để chống race condition.
+     *
+     * @param id id của task cần cập nhật
+     * @param dto dữ liệu mới
+     * @return TaskResponseDTO sau khi cập nhật
+     */
+    TaskResponseDTO updateTask(Long id, TaskRequestDTO dto);
+
+    /**
+     * Xóa mềm task.
+     * Trả về 204 qua Controller.
+     * Nếu không tìm thấy, throw ResourceNotFoundException.
+     *
+     * @param id id của task cần xóa.
+     */
+    void deleteTask(Long id);
 }
 

@@ -1,5 +1,7 @@
 package com.example.todoapp.entity;
 
+import com.example.todoapp.constant.Priority;
+import com.example.todoapp.constant.TaskStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
@@ -37,7 +39,7 @@ public class Task {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private TaskPriority priority = TaskPriority.MEDIUM;
+    private Priority priority = Priority.MEDIUM;
 
     @Version
     @Column(nullable = false)
@@ -64,5 +66,16 @@ public class Task {
         updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * Đánh dấu task là đã xoá (soft delete).
+     * Gọi {@code taskRepository.save(task)} sau khi gọi method này.
+     */
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
 
+    /** Kiểm tra task đã bị soft-delete chưa. */
+    public boolean isDeleted() {
+        return deletedAt != null;
+    }
 }

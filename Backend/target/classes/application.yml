@@ -1,0 +1,75 @@
+# ============================================================
+# application.yml — Shared / Base Configuration
+# Active profile is selected at runtime:
+#   java -jar todoapp.jar --spring.profiles.active=dev
+# ============================================================
+
+spring:
+  application:
+    name: todoapp
+
+  # Profile inclusion – override in each environment yml
+  profiles:
+    active: dev   # default when no explicit profile is given (local convenience)
+
+  # ---- JPA / Hibernate shared defaults ----
+  jpa:
+    open-in-view: false       # avoid LazyInitializationException antipattern
+    properties:
+      hibernate:
+        format_sql: true      # pretty-print SQL in logs
+        use_sql_comments: true
+
+  # ---- Jackson ----
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+
+# ---- Server ----
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# ---- Actuator ----
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when_authorized
+  info:
+    env:
+      enabled: true
+
+# ---- Application Info (shown at /actuator/info) ----
+info:
+  app:
+    name: ${spring.application.name}
+    description: "Todo List Management REST API"
+    version: "1.0.0"
+
+# ---- OpenAPI / Swagger ----
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# ---- Logging (base level; profiles can override) ----
+logging:
+  level:
+    root: INFO
+    com.example.todoapp: DEBUG
+    org.springframework.web: INFO

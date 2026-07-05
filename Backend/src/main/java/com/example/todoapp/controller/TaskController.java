@@ -11,7 +11,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -98,5 +101,31 @@ public class TaskController {
                 .toUri();
 
         return ResponseEntity.created(location).body(created);
+    }
+
+    /**
+     * PUT /api/tasks/{id} — Cập nhật task.
+     *
+     * <p>Xử lý conflict (race condition) qua Optimistic Locking (HTTP 409).
+     * Trả về HTTP 404 nếu không tìm thấy ID.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<TaskResponseDTO> updateTask(
+            @PathVariable Long id,
+            @Valid @RequestBody TaskRequestDTO dto
+    ) {
+        TaskResponseDTO updated = taskService.updateTask(id, dto);
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * DELETE /api/tasks/{id} — Xóa mềm task.
+     * Trả về 204 No Content.
+     * Gọi 2 lần (double-click) thì lần 2 trả 404.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
     }
 }

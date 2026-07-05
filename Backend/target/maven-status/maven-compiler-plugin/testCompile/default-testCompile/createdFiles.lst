@@ -1,0 +1,2 @@
+com\example\todoapp\service\TaskDeleteTest.class
+com\example\todoapp\service\TaskOptimisticLockingTest.class

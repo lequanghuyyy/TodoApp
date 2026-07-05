@@ -7,6 +7,7 @@ import com.example.todoapp.dto.request.TaskRequestDTO;
 import com.example.todoapp.dto.response.PageResponseDTO;
 import com.example.todoapp.dto.response.TaskResponseDTO;
 import com.example.todoapp.entity.Task;
+import com.example.todoapp.exception.ResourceNotFoundException;
 import com.example.todoapp.mapper.TaskMapper;
 import com.example.todoapp.repository.TaskRepository;
 import com.example.todoapp.repository.TaskSpecification;
@@ -88,6 +89,36 @@ public class TaskServiceImpl implements TaskService {
 
         Task saved = taskRepository.save(task);
         return taskMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public TaskResponseDTO updateTask(Long id, TaskRequestDTO dto) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy công việc với id: " + id));
+
+        String title = dto.getTitle().trim();
+        String description = dto.getDescription() != null ? dto.getDescription().trim() : "";
+        Priority priority = dto.getPriority() != null ? dto.getPriority() : Priority.MEDIUM;
+
+        task.setTitle(title);
+        task.setDescription(description);
+        task.setPriority(priority);
+
+        Task saved = taskRepository.save(task);
+        return taskMapper.toResponseDTO(saved);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTask(Long id) {
+        // Tìm task (nếu đã xoá rồi, @SQLRestriction sẽ làm nó không trả về -> văng 404)
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy công việc với id: " + id));
+
+        // Soft delete
+        task.softDelete();
+        taskRepository.save(task);
     }
 }
 

@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -97,6 +98,35 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.badRequest().body(errorBody(
                 HttpStatus.BAD_REQUEST, message, null));
+    }
+
+    // ----------------------------------------------------------------
+    // 404 — Resource Not Found
+    // ----------------------------------------------------------------
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(
+                HttpStatus.NOT_FOUND, ex.getMessage(), null));
+    }
+
+    // ----------------------------------------------------------------
+    // 409 — Optimistic Locking Conflict
+    // ----------------------------------------------------------------
+
+    /**
+     * Bắt lỗi khi 2 request cùng sửa 1 bản ghi đồng thời.
+     */
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, Object>> handleOptimisticLocking(
+            ObjectOptimisticLockingFailureException ex) {
+
+        log.warn("Conflict version khi update: {}", ex.getMessage());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorBody(
+                HttpStatus.CONFLICT,
+                "Dữ liệu đã bị thay đổi bởi người khác, vui lòng tải lại trang và thử lại",
+                null));
     }
 
     // ----------------------------------------------------------------
