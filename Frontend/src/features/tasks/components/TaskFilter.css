@@ -1,0 +1,42 @@
+.task-filter {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.task-filter__search {
+  flex: 1;
+}
+
+.task-filter__search input {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+.task-filter__search input:focus {
+  outline: none;
+  border-color: var(--srt-red-accent, #E31A22);
+  box-shadow: 0 0 0 3px rgba(227, 26, 34, 0.1);
+}
+
+.task-filter__status select {
+  padding: 10px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: white;
+  min-width: 160px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.task-filter__status select:focus {
+  outline: none;
+  border-color: var(--srt-red-accent, #E31A22);
+  box-shadow: 0 0 0 3px rgba(227, 26, 34, 0.1);
+}

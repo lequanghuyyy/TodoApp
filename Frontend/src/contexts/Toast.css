@@ -1,0 +1,119 @@
+.toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none; /* Để các click xuyên qua container vào element bên dưới nếu ko trúng toast */
+  max-width: 400px;
+  width: calc(100% - 3rem); /* Tránh tràn trên mobile */
+}
+
+.toast-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  pointer-events: auto; /* Kích hoạt click lại cho toast items */
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  background-color: white;
+  border-left: 4px solid transparent;
+}
+
+.toast-item--success {
+  border-left-color: var(--success);
+}
+
+.toast-item--success .toast-item__icon {
+  color: var(--success);
+}
+
+.toast-item--error {
+  border-left-color: var(--danger);
+}
+
+.toast-item--error .toast-item__icon {
+  color: var(--danger);
+}
+
+.toast-item__content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-grow: 1;
+}
+
+.toast-item__icon {
+  flex-shrink: 0;
+}
+
+.toast-item__message {
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.toast-item__close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  margin-left: 0.75rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.toast-item__close:hover {
+  background-color: var(--border);
+  color: var(--text);
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .toast-container {
+    top: 1rem;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: calc(100% - 2rem);
+    align-items: center;
+  }
+  
+  .toast-item {
+    width: 100%;
+    animation-name: slideInTop;
+  }
+}
+
+@keyframes slideInTop {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

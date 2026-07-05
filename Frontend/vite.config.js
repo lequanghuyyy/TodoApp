@@ -13,6 +13,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    // Nếu port 5173 bị chiếm, Vite sẽ tự động chọn port khác (xem README)
+    strictPort: true,
   },
 })

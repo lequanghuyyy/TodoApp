@@ -1,155 +1,211 @@
-import { useState, useEffect } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useTasks } from './features/tasks/hooks/useTasks'
+import TaskList from './features/tasks/components/TaskList'
+import TaskForm from './features/tasks/components/TaskForm'
+import TaskFilter from './features/tasks/components/TaskFilter'
+import SortSelector from './features/tasks/components/SortSelector'
+import Pagination from './features/tasks/components/Pagination'
+import ConfirmDialog from './components/ConfirmDialog/ConfirmDialog'
+import Modal from './components/Modal/Modal'
+import { deleteTask, toggleTaskStatus } from './features/tasks/api/taskApi'
 import './App.css'
 
-// ─── [TẠM THỜI] Health-check component — xóa sau khi xác nhận CORS OK ──────
-// Gọi /api/actuator/health để kiểm tra backend đang chạy và CORS đã đúng.
-// Nếu nhận {"status":"UP"} mà không bị lỗi CORS → kết nối frontend-backend OK.
-function HealthCheck() {
-  const [health, setHealth] = useState({ status: 'Checking...', detail: '' })
-
-  useEffect(() => {
-    const BACKEND = import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, '') || 'http://localhost:8080/api'
-    fetch(`${BACKEND}/actuator/health`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        return res.json()
-      })
-      .then((data) => setHealth({ status: data.status, detail: JSON.stringify(data, null, 2) }))
-      .catch((err) => setHealth({ status: 'ERROR', detail: err.message }))
-  }, [])
-
-  const color = health.status === 'UP' ? '#4ade80' : health.status === 'Checking...' ? '#facc15' : '#f87171'
-  return (
-    <div id="health-check-temp" style={{ margin: '1rem auto', maxWidth: 480, textAlign: 'left', background: '#1e1e2e', borderRadius: 10, padding: '1rem', border: `1px solid ${color}` }}>
-      <p style={{ margin: 0, fontFamily: 'monospace', fontSize: 13, color: '#aaa' }}>
-        [TEMP] Backend Health → <strong style={{ color }}>{health.status}</strong>
-      </p>
-      {health.detail && (
-        <pre style={{ margin: '0.5rem 0 0', fontSize: 11, color: '#cdd6f4', overflowX: 'auto' }}>{health.detail}</pre>
-      )}
-    </div>
-  )
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 function App() {
-  const [count, setCount] = useState(0)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const initialSearch = searchParams.get('search') || ''
+  const initialStatus = searchParams.get('status') || ''
+  const initialSortBy = searchParams.get('sortBy') || 'CREATED_AT'
+  const initialSortDir = searchParams.get('sortDir') || 'DESC'
+  const initialPage = parseInt(searchParams.get('page') || '0', 10)
+
+  const { tasks, setTasks, loading, error, pagination, filters, setSearch, setStatusFilter, setSort, setPage, refetch } = useTasks({ 
+    initialSearch, 
+    initialStatus,
+    initialSortBy,
+    initialSortDir,
+    initialPage
+  })
+  
+  // Sync filter state to URL (using replaceState)
+  useEffect(() => {
+    const newParams = new URLSearchParams()
+    if (filters.search) newParams.set('search', filters.search)
+    if (filters.status) newParams.set('status', filters.status)
+    if (filters.sortBy && filters.sortBy !== 'CREATED_AT') newParams.set('sortBy', filters.sortBy)
+    if (filters.sortDir && filters.sortDir !== 'DESC') newParams.set('sortDir', filters.sortDir)
+    if (pagination.page > 0) newParams.set('page', pagination.page.toString())
+    setSearchParams(newParams, { replace: true })
+  }, [filters.search, filters.status, filters.sortBy, filters.sortDir, pagination.page, setSearchParams])
+  
+  // -- State quản lý UI --
+  const [editingTask, setEditingTask] = useState(null)
+  const [deletingTask, setDeletingTask] = useState(null)
+  const [toast, setToast] = useState(null) // { message, type: 'success' | 'error' }
+  const togglingTaskIds = useRef(new Set())
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type })
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingTask) return
+    try {
+      await deleteTask(deletingTask.id)
+      showToast('Xóa công việc thành công!')
+      refetch()
+    } catch (error) {
+      if (error.status === 404) {
+        showToast('Công việc này không còn tồn tại, có thể đã bị xóa', 'error')
+        refetch() // Vẫn refetch để đồng bộ UI
+      } else {
+        showToast(error.message || 'Lỗi khi xóa công việc', 'error')
+      }
+    } finally {
+      setDeletingTask(null)
+    }
+  }
+
+  const handleToggle = async (id) => {
+    if (togglingTaskIds.current.has(id)) return
+    
+    const taskIndex = tasks.findIndex(t => t.id === id)
+    if (taskIndex === -1) return
+    const task = tasks[taskIndex]
+    const originalStatus = task.status
+    const newStatus = originalStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED'
+
+    // 1. Optimistic Update
+    togglingTaskIds.current.add(id)
+    setTasks(currentTasks => {
+      const idx = currentTasks.findIndex(t => t.id === id)
+      if (idx === -1) return currentTasks
+      const updated = [...currentTasks]
+      updated[idx] = { ...updated[idx], status: newStatus }
+      return updated
+    })
+
+    // 2. Call API
+    try {
+      await toggleTaskStatus(id)
+    } catch (error) {
+      // 3. Rollback UI on failure
+      setTasks(currentTasks => {
+        const idx = currentTasks.findIndex(t => t.id === id)
+        if (idx === -1) return currentTasks // có thể task đã bị xóa ở tab khác
+        const reverted = [...currentTasks]
+        reverted[idx] = { ...reverted[idx], status: originalStatus }
+        return reverted
+      })
+      showToast('Không thể cập nhật trạng thái, công việc có thể đã bị thay đổi hoặc xóa', 'error')
+    } finally {
+      togglingTaskIds.current.delete(id)
+    }
+  }
 
   return (
-    <>
-      {/* [TEMP] Xóa dòng này sau khi xác nhận CORS OK */}
-      <HealthCheck />
-
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="app">
+      {/* ── Toast Notification ── */}
+      {toast && (
+        <div className={`toast-notification toast--${toast.type}`} role="alert">
+          {toast.message}
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      {/* ── Header ── */}
+      <header className="app-header">
+        <div className="app-header__inner">
+          <div className="app-header__brand">
+            <span className="app-header__logo-bar" aria-hidden="true" />
+            <h1 className="app-header__title">SRT Todo</h1>
+          </div>
+          <span className="app-header__count">
+            {loading ? '…' : `${pagination.totalElements} công việc`}
+          </span>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      {/* ── Main Content ── */}
+      <main className="app-main">
+        <div className="app-content">
+          <TaskForm 
+            mode="create" 
+            onSuccess={() => {
+              showToast('Tạo công việc thành công!')
+              refetch()
+            }} 
+          />
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <TaskFilter 
+              search={filters.search}
+              status={filters.status}
+              onSearchChange={setSearch}
+              onStatusChange={setStatusFilter}
+            />
+            <SortSelector
+              sortBy={filters.sortBy}
+              sortDir={filters.sortDir}
+              onSortChange={setSort}
+            />
+          </div>
+
+          <TaskList
+            tasks={tasks}
+            loading={loading}
+            error={error}
+            onEdit={setEditingTask}
+            onDelete={(id) => {
+              const task = tasks.find(t => t.id === id)
+              if (task) setDeletingTask(task)
+            }}
+            onToggle={handleToggle}
+            currentPage={pagination.page}
+            onResetPage={() => setPage(0)}
+          />
+
+          <Pagination
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={setPage}
+          />
+        </div>
+      </main>
+
+      {/* ── Edit Task Modal ── */}
+      <Modal 
+        isOpen={!!editingTask} 
+        onClose={() => setEditingTask(null)}
+        title="Chỉnh sửa công việc"
+      >
+        {editingTask && (
+          <TaskForm
+            mode="edit"
+            initialData={editingTask}
+            onSuccess={() => {
+              showToast('Cập nhật công việc thành công!')
+              setEditingTask(null)
+              refetch()
+            }}
+            onNotFound={() => {
+              showToast('Công việc này không còn tồn tại, có thể đã bị xóa', 'error')
+              setEditingTask(null)
+              refetch()
+            }}
+            onCancel={() => setEditingTask(null)}
+          />
+        )}
+      </Modal>
+
+      {/* ── Delete Confirm Dialog ── */}
+      <ConfirmDialog
+        isOpen={!!deletingTask}
+        message={`Bạn có chắc muốn xóa công việc '${deletingTask?.title}'? Hành động này không thể hoàn tác.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeletingTask(null)}
+      />
+    </div>
   )
 }
 

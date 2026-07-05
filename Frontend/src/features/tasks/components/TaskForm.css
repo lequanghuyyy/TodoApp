@@ -1,0 +1,126 @@
+/**
+ * features/tasks/components/TaskForm.css
+ */
+.task-form {
+  background: var(--srt-white, #ffffff);
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.task-form__error-global {
+  background-color: #fdeaea;
+  color: var(--srt-red-primary, #B81414);
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.task-form__group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-form__group label {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--srt-text, #222222);
+}
+
+.task-form__group input,
+.task-form__group textarea,
+.task-form__group select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.task-form__group input:focus,
+.task-form__group textarea:focus,
+.task-form__group select:focus {
+  outline: none;
+  border-color: var(--srt-red-accent, #E31A22);
+  box-shadow: 0 0 0 3px rgba(227, 26, 34, 0.1);
+}
+
+.task-form__group input:disabled,
+.task-form__group textarea:disabled,
+.task-form__group select:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.task-form__group input.is-invalid,
+.task-form__group textarea.is-invalid,
+.task-form__group select.is-invalid {
+  border-color: var(--srt-red-primary, #B81414);
+}
+
+.task-form__group input.is-invalid:focus,
+.task-form__group textarea.is-invalid:focus,
+.task-form__group select.is-invalid:focus {
+  box-shadow: 0 0 0 3px rgba(184, 20, 20, 0.1);
+}
+
+.task-form__error-text {
+  color: var(--srt-red-primary, #B81414);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.task-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-submit {
+  background-color: var(--srt-red-accent, #E31A22);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: var(--srt-red-primary, #B81414);
+}
+
+.btn-submit:disabled {
+  background-color: #f0a3a6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background-color: white;
+  border: 1px solid #d1d5db;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #f9fafb;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

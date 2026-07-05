@@ -1,4 +1,14 @@
 :root {
+  /* ── SRT Brand Color Palette (color.md) ──────────────────────── */
+  --srt-red-primary:   #B81414; /* Primary Dark Red — Footer */
+  --srt-red-dark:      #850B10; /* Secondary Dark Red — Copyright */
+  --srt-red-accent:    #E31A22; /* Accent Bright Red — CTA Buttons */
+  --srt-blue:          #0F4C81; /* Accent Blue — Active / icon nhỏ */
+  --srt-white:         #FFFFFF;
+  --srt-text:          #222222;
+  --srt-text-secondary:#555555;
+
+  /* ── Vite template tokens (giữ nguyên) ──────────────────────── */
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
