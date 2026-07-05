@@ -7,6 +7,9 @@
 spring:
   application:
     name: todoapp
+  
+  config:
+    import: optional:file:.env[.properties]
 
   # Profile inclusion – override in each environment yml
   profiles:

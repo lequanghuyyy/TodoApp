@@ -9,8 +9,8 @@
 spring:
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&requireSSL=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=UTF-8
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    username: ${DATABASE_USERNAME:${DB_USERNAME}}
+    password: ${DATABASE_PASSWORD:${DB_PASSWORD}}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       pool-name: TodoApp-Prod-Pool
@@ -43,3 +43,12 @@ server:
   error:
     include-stacktrace: never
     include-message: never
+
+# ---- Swagger / OpenAPI ----
+# Expose tài liệu API chi tiết ở production là rủi ro bảo mật không cần thiết
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+

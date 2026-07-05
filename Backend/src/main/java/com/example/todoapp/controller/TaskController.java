@@ -22,6 +22,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import java.net.URI;
 
 import static com.example.todoapp.constant.ApiConstants.DEFAULT_PAGE_SIZE;
@@ -35,6 +39,7 @@ import static com.example.todoapp.constant.ApiConstants.DEFAULT_PAGE_SIZE;
 @RestController
 @RequestMapping("/tasks")
 @RequiredArgsConstructor
+@Tag(name = "Task Management", description = "APIs for managing tasks")
 public class TaskController {
 
     private final TaskService taskService;
@@ -53,8 +58,10 @@ public class TaskController {
      * </ul>
      *
      * <p>Nếu {@code sortBy} không nằm trong enum {@link TaskSortField}, Spring tự động
-     * trả {@code 400 Bad Request} thông qua ConversionService — không cần xử lý thủ công.
+     * Trả {@code 400 Bad Request} thông qua ConversionService — không cần xử lý thủ công.
      */
+    @Operation(summary = "Lấy danh sách task", description = "Lấy danh sách task có search, filter, sort và phân trang.")
+    @ApiResponse(responseCode = "200", description = "Thành công")
     @GetMapping
     public ResponseEntity<PageResponseDTO<TaskResponseDTO>> getTasks(
             @RequestParam(required = false)
@@ -89,6 +96,9 @@ public class TaskController {
      *   <li>Body là {@link TaskResponseDTO} của task vừa persist.</li>
      * </ul>
      */
+    @Operation(summary = "Tạo task mới", description = "Tạo một task mới.")
+    @ApiResponse(responseCode = "201", description = "Đã tạo thành công")
+    @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ")
     @PostMapping
     public ResponseEntity<TaskResponseDTO> createTask(
             @Valid @RequestBody TaskRequestDTO dto
@@ -110,6 +120,10 @@ public class TaskController {
      * <p>Xử lý conflict (race condition) qua Optimistic Locking (HTTP 409).
      * Trả về HTTP 404 nếu không tìm thấy ID.
      */
+    @Operation(summary = "Cập nhật task", description = "Cập nhật thông tin của task.")
+    @ApiResponse(responseCode = "200", description = "Cập nhật thành công")
+    @ApiResponse(responseCode = "404", description = "Không tìm thấy task")
+    @ApiResponse(responseCode = "409", description = "Xung đột dữ liệu (Optimistic Locking)")
     @PutMapping("/{id}")
     public ResponseEntity<TaskResponseDTO> updateTask(
             @PathVariable Long id,
@@ -120,10 +134,13 @@ public class TaskController {
     }
 
     /**
-     * DELETE /api/tasks/{id} — Xóa mềm task.
-     * Trả về 204 No Content.
-     * Gọi 2 lần (double-click) thì lần 2 trả 404.
+     * DELETE /api/tasks/{id} — Xóa task.
+     *
+     * <p>Gọi 2 lần (double-click) thì lần 2 trả 404.
      */
+    @Operation(summary = "Xóa mềm task", description = "Đánh dấu task là đã xóa (xóa mềm).")
+    @ApiResponse(responseCode = "204", description = "Xóa thành công")
+    @ApiResponse(responseCode = "404", description = "Không tìm thấy task")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
@@ -136,6 +153,10 @@ public class TaskController {
      * <p>Xử lý conflict (race condition) qua Optimistic Locking (HTTP 409).
      * Trả về HTTP 404 nếu không tìm thấy ID.
      */
+    @Operation(summary = "Đổi trạng thái task", description = "Chuyển đổi trạng thái của task (PENDING <-> COMPLETED).")
+    @ApiResponse(responseCode = "200", description = "Cập nhật trạng thái thành công")
+    @ApiResponse(responseCode = "404", description = "Không tìm thấy task")
+    @ApiResponse(responseCode = "409", description = "Xung đột dữ liệu (Optimistic Locking)")
     @PatchMapping("/{id}/toggle-status")
     public ResponseEntity<TaskResponseDTO> toggleStatus(@PathVariable Long id) {
         TaskResponseDTO updated = taskService.toggleStatus(id);
