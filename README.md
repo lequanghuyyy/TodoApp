@@ -2,6 +2,9 @@
 
 Dự án Todo App là một hệ thống quản lý công việc toàn diện, giúp người dùng tổ chức, theo dõi và sắp xếp các công việc hàng ngày một cách trực quan và hiệu quả. Ứng dụng cung cấp các tính năng từ cơ bản (tạo, cập nhật, xóa) đến nâng cao như lọc, phân trang, sắp xếp và xem công việc dưới dạng lịch (Agenda View).
 
+# Demo link: https://todo-app-psi-two-59.vercel.app/
+Lưu ý: Dạ backend được deploy trên gói miễn phí của Render, gói free tự động tắt sau 15 phút không hoạt động. Lần truy cập đầu tiên sau khi server ngủ có thể mất 30-60 giây để khởi động lại — đây là giới hạn của gói free, không phải lỗi ứng dụng. Xin vui lòng đợi một chút ở lần tải đầu tiên, các lần sau sẽ nhanh bình thường.
+
 ## Mục lục
 - [Tech Stack](#tech-stack)
 - [Cấu trúc thư mục tổng quan](#cấu-trúc-thư-mục-tổng-quan)
@@ -12,7 +15,6 @@ Dự án Todo App là một hệ thống quản lý công việc toàn diện, g
 - [Bảng API Endpoint](#bảng-api-endpoint)
 - [Swagger UI](#swagger-ui)
 - [Troubleshooting](#troubleshooting)
-- [Demo](#demo)
 
 ## Tech Stack
 **Backend:**
@@ -147,6 +149,3 @@ Một số lỗi thường gặp và cách xử lý:
 3. **Lỗi Port đã bị chiếm dụng (Address already in use)**
    - **Dấu hiệu:** Quá trình `docker-compose up` hoặc `npm run dev` thất bại vì báo lỗi các port như `8080`, `5173`, `80` hoặc `3306` đang được sử dụng.
    - **Khắc phục:** Tắt các ứng dụng đang dùng port đó. Hoặc bạn có thể đổi port trực tiếp trong `.env` / `docker-compose.yml` (VD: ở dịch vụ `frontend`, đổi `"80:80"` thành `"8082:80"`).
-
-## Demo
-*(Dự án hiện chưa có bản deploy online tại issue này. Vui lòng clone về và chạy local theo hướng dẫn trên).*
