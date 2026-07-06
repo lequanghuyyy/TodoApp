@@ -226,8 +226,8 @@ function App() {
         <div className="sidebar-brand">
           <span className="material-symbols-outlined sidebar-brand__icon fill">task_alt</span>
           <div>
-            <div className="sidebar-brand__title">TaskFlow</div>
-            <div className="sidebar-brand__subtitle">Productivity Mode</div>
+            <div className="sidebar-brand__title">Todo App</div>
+
           </div>
         </div>
 
@@ -245,19 +245,11 @@ function App() {
             onClick={() => { setActiveView(VIEW_AGENDA); setSidebarOpen(false) }}
           >
             <span className="material-symbols-outlined">calendar_today</span>
-            Lịch (Agenda)
+            Agenda
           </button>
         </nav>
 
-        {/* CTA */}
-        <button
-          className="sidebar-cta"
-          id="sidebar-create-btn"
-          onClick={() => { setIsCreateOpen(true); setSidebarOpen(false) }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add</span>
-          Tạo công việc mới
-        </button>
+
       </aside>
 
       {/* ══════════════ WORKSPACE ══════════════ */}
