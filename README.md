@@ -69,7 +69,7 @@ TodoApp/
 
 1. **Clone repository và di chuyển vào thư mục:**
    ```bash
-   git clone <repo-url>
+   git clone https://github.com/lequanghuyyy/TodoApp.git
    cd TodoApp
    ```
 2. **Thiết lập biến môi trường:**
