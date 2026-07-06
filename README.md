@@ -109,11 +109,15 @@ Dành cho người muốn can thiệp sâu vào code và xem log trực tiếp t
    ```bash
    cd Frontend
    ```
-2. Cài đặt các package cần thiết:
+2. Thiết lập biến môi trường để Frontend gọi đúng API Backend ở port 8080:
+   ```bash
+   cp .env.example .env
+   ```
+3. Cài đặt các package cần thiết:
    ```bash
    npm install
    ```
-3. Khởi động Vite Server:
+4. Khởi động Vite Server:
    ```bash
    npm run dev
    ```
