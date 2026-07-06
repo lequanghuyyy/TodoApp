@@ -44,3 +44,13 @@ export const deleteTask = (id) => axiosClient.delete(`/tasks/${id}`)
  * @returns {Promise<TaskResponseDTO>}
  */
 export const toggleTaskStatus = (id) => axiosClient.patch(`/tasks/${id}/toggle-status`)
+
+/**
+ * Lấy task nhóm theo ngày từ endpoint /by-date.
+ * @param {string} fromDate - 'YYYY-MM-DD'
+ * @param {string} toDate   - 'YYYY-MM-DD'
+ * @param {AbortSignal} [signal] - AbortController signal để huỷ request khi navigate nhanh
+ * @returns {Promise<Array<{ date: string, tasks: TaskResponseDTO[] }>>}
+ */
+export const getTasksByDate = (fromDate, toDate, signal) =>
+  axiosClient.get('/tasks/by-date', { params: { fromDate, toDate }, signal })

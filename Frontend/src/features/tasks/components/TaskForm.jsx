@@ -11,6 +11,7 @@ const TaskForm = ({ mode = 'create', initialData, onSuccess, onNotFound, onCance
     title:       initialData?.title       || '',
     description: initialData?.description || '',
     priority:    initialData?.priority    || 'MEDIUM',
+    dueDate:     initialData?.dueDate     || '',  // '' = không có deadline
   })
 
   const [errors, setErrors]         = useState({})
@@ -54,11 +55,12 @@ const TaskForm = ({ mode = 'create', initialData, onSuccess, onNotFound, onCance
         title:       formData.title.trim(),
         description: formData.description.trim(),
         priority:    formData.priority,
+        dueDate:     formData.dueDate || null,  // '' → null để backend lưu NULL
       }
 
       if (mode === 'create') {
         await createTask(payload)
-        setFormData({ title: '', description: '', priority: 'MEDIUM' })
+        setFormData({ title: '', description: '', priority: 'MEDIUM', dueDate: '' })
       } else {
         await updateTask(initialData.id, payload)
       }
@@ -188,6 +190,39 @@ const TaskForm = ({ mode = 'create', initialData, onSuccess, onNotFound, onCance
           </label>
         </div>
         {errors.priority && <span className="task-form__error-text">{errors.priority}</span>}
+      </div>
+
+      {/* ── Due Date ── */}
+      <div className="task-form__group">
+        <label className="task-form__label" htmlFor="tf-due-date">
+          Hạn hoàn thành{' '}
+          <span style={{ textTransform: 'none', fontWeight: 400, letterSpacing: 0, opacity: 0.7 }}>
+            (không bắt buộc)
+          </span>
+        </label>
+        <div className="task-form__due-date-row">
+          <input
+            className="task-form__input-date"
+            type="date"
+            id="tf-due-date"
+            name="dueDate"
+            value={formData.dueDate}
+            onChange={handleChange}
+            disabled={isSubmitting}
+          />
+          {formData.dueDate && (
+            <button
+              type="button"
+              className="task-form__due-clear"
+              onClick={() => setFormData(prev => ({ ...prev, dueDate: '' }))}
+              disabled={isSubmitting}
+              aria-label="Xóa hạn hoàn thành"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+              Xóa
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Actions ── */}

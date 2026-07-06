@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 
@@ -40,6 +41,13 @@ public class Task {
     @Column(nullable = false)
     @Builder.Default
     private Priority priority = Priority.MEDIUM;
+
+    /**
+     * Ngày dự kiến hoàn thành (deadline). Nullable — không phải mọi task đều có hạn.
+     * Cho phép ngày quá khứ có chủ đích (ghi nhận task lẽ ra phải xong hôm qua).
+     */
+    @Column(name = "due_date")
+    private LocalDate dueDate;
 
     @Version
     @Column(nullable = false)

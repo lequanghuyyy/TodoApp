@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTasks } from './features/tasks/hooks/useTasks'
+import { useAgendaTasks } from './features/tasks/hooks/useAgendaTasks'
 import TaskList from './features/tasks/components/TaskList'
+import AgendaView from './features/tasks/components/AgendaView'
 import TaskForm from './features/tasks/components/TaskForm'
 import TaskFilter from './features/tasks/components/TaskFilter'
 import SortSelector from './features/tasks/components/SortSelector'
@@ -11,6 +13,16 @@ import Modal from './components/Modal/Modal'
 import { deleteTask, toggleTaskStatus } from './features/tasks/api/taskApi'
 import './App.css'
 
+// ── Chế độ xem ────────────────────────────────────────────────
+const VIEW_DASHBOARD = 'dashboard'
+const VIEW_AGENDA = 'agenda'
+
+const formatDateDM = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr + 'T00:00:00')
+  return `${d.getDate()}/${d.getMonth() + 1}`
+}
+
 function App() {
   const [searchParams, setSearchParams] = useSearchParams()
   const initialSearch = searchParams.get('search') || ''
@@ -18,8 +30,16 @@ function App() {
   const initialSortBy = searchParams.get('sortBy') || 'CREATED_AT'
   const initialSortDir = searchParams.get('sortDir') || 'DESC'
   const initialPage = parseInt(searchParams.get('page') || '0', 10)
+  const initialView = searchParams.get('view') === 'agenda' ? VIEW_AGENDA : VIEW_DASHBOARD
 
-  const { tasks, setTasks, loading, error, pagination, filters, setSearch, setStatusFilter, setSort, setPage, refetch } = useTasks({
+  // ── Trạng thái chế độ xem ──────────────────────────────────
+  const [activeView, setActiveView] = useState(initialView)
+
+  // ── Dashboard hook ─────────────────────────────────────────
+  const {
+    tasks, setTasks, loading, error, pagination, filters,
+    setSearch, setStatusFilter, setSort, setPage, refetch
+  } = useTasks({
     initialSearch,
     initialStatus,
     initialSortBy,
@@ -27,16 +47,45 @@ function App() {
     initialPage
   })
 
+  // ── Agenda hook ────────────────────────────────────────────
+  const [agendaStartDate, setAgendaStartDate] = useState(() => {
+    const today = new Date()
+    const y = today.getFullYear()
+    const m = String(today.getMonth() + 1).padStart(2, '0')
+    const d = String(today.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  })
+
+  // Compute toDate (6 days after fromDate)
+  const agendaToDate = (() => {
+    const d = new Date(agendaStartDate + 'T00:00:00')
+    d.setDate(d.getDate() + 6)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  })()
+
+  const {
+    groups: agendaGroups,
+    setGroups: setAgendaGroups,
+    loading: agendaLoading,
+    error: agendaError,
+    refetch: agendaRefetch,
+    updateTaskInGroups
+  } = useAgendaTasks(agendaStartDate, agendaToDate)
+
   // Sync filter state to URL
   useEffect(() => {
     const newParams = new URLSearchParams()
+    if (activeView !== VIEW_DASHBOARD) newParams.set('view', activeView)
     if (filters.search) newParams.set('search', filters.search)
     if (filters.status) newParams.set('status', filters.status)
     if (filters.sortBy && filters.sortBy !== 'CREATED_AT') newParams.set('sortBy', filters.sortBy)
     if (filters.sortDir && filters.sortDir !== 'DESC') newParams.set('sortDir', filters.sortDir)
     if (pagination.page > 0) newParams.set('page', pagination.page.toString())
     setSearchParams(newParams, { replace: true })
-  }, [filters.search, filters.status, filters.sortBy, filters.sortDir, pagination.page, setSearchParams])
+  }, [activeView, filters.search, filters.status, filters.sortBy, filters.sortDir, pagination.page, setSearchParams])
 
   // -- UI State --
   const [editingTask, setEditingTask] = useState(null)
@@ -51,16 +100,22 @@ function App() {
     setTimeout(() => setToast(null), 3000)
   }
 
+  // Hàm refetch cả 2 view khi có thay đổi data
+  const refetchAll = () => {
+    refetch()
+    agendaRefetch()
+  }
+
   const handleDeleteConfirm = async () => {
     if (!deletingTask) return
     try {
       await deleteTask(deletingTask.id)
       showToast('Xóa công việc thành công!')
-      refetch()
+      refetchAll()
     } catch (error) {
       if (error.status === 404) {
         showToast('Công việc này không còn tồn tại, có thể đã bị xóa', 'error')
-        refetch()
+        refetchAll()
       } else {
         showToast(error.message || 'Lỗi khi xóa công việc', 'error')
       }
@@ -69,38 +124,79 @@ function App() {
     }
   }
 
+  // Optimistic toggle — cập nhật cả 2 danh sách
   const handleToggle = async (id) => {
     if (togglingTaskIds.current.has(id)) return
 
-    const taskIndex = tasks.findIndex(t => t.id === id)
-    if (taskIndex === -1) return
-    const task = tasks[taskIndex]
-    const originalStatus = task.status
-    const newStatus = originalStatus === 'COMPLETED' ? 'PENDING' : 'COMPLETED'
-
-    togglingTaskIds.current.add(id)
-    setTasks(currentTasks => {
-      const idx = currentTasks.findIndex(t => t.id === id)
-      if (idx === -1) return currentTasks
-      const updated = [...currentTasks]
+    // Helper để toggle 1 mảng tasks trong Dashboard
+    const optimisticToggle = (list) => {
+      const idx = list.findIndex(t => t.id === id)
+      if (idx === -1) return list
+      const updated = [...list]
+      const newStatus = updated[idx].status === 'COMPLETED' ? 'PENDING' : 'COMPLETED'
       updated[idx] = { ...updated[idx], status: newStatus }
       return updated
-    })
+    }
+
+    // Cập nhật 1 task
+    const toggleTaskStatusLocal = (task) => {
+      if (!task) return null
+      return { ...task, status: task.status === 'COMPLETED' ? 'PENDING' : 'COMPLETED' }
+    }
+
+    const taskInDashboard = tasks.find(t => t.id === id)
+    // Find task in agenda groups
+    let taskInAgenda = null
+    for (const group of agendaGroups) {
+      const found = group.tasks.find(t => t.id === id)
+      if (found) {
+        taskInAgenda = found
+        break
+      }
+    }
+
+    const task = taskInDashboard || taskInAgenda
+    if (!task) return
+    const originalStatus = task.status
+
+    togglingTaskIds.current.add(id)
+    setTasks(prev => optimisticToggle(prev))
+    updateTaskInGroups(id, toggleTaskStatusLocal)
 
     try {
       await toggleTaskStatus(id)
     } catch (error) {
-      setTasks(currentTasks => {
-        const idx = currentTasks.findIndex(t => t.id === id)
-        if (idx === -1) return currentTasks
-        const reverted = [...currentTasks]
+      // Rollback cả 2
+      const revert = (list) => {
+        const idx = list.findIndex(t => t.id === id)
+        if (idx === -1) return list
+        const reverted = [...list]
         reverted[idx] = { ...reverted[idx], status: originalStatus }
         return reverted
-      })
+      }
+      setTasks(prev => revert(prev))
+      updateTaskInGroups(id, (t) => t ? { ...t, status: originalStatus } : null)
       showToast('Không thể cập nhật trạng thái, công việc có thể đã bị thay đổi hoặc xóa', 'error')
     } finally {
       togglingTaskIds.current.delete(id)
     }
+  }
+
+  // Xác định tasks/handler cho view hiện tại
+  const handleDelete = (id) => {
+    let task = null
+    if (activeView === VIEW_AGENDA) {
+      for (const group of agendaGroups) {
+        const found = group.tasks.find(t => t.id === id)
+        if (found) {
+          task = found
+          break
+        }
+      }
+    } else {
+      task = tasks.find(t => t.id === id)
+    }
+    if (task) setDeletingTask(task)
   }
 
   return (
@@ -137,13 +233,19 @@ function App() {
 
         {/* Nav */}
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <button className="sidebar-nav__link sidebar-nav__link--active">
+          <button
+            className={`sidebar-nav__link${activeView === VIEW_DASHBOARD ? ' sidebar-nav__link--active' : ''}`}
+            onClick={() => { setActiveView(VIEW_DASHBOARD); setSidebarOpen(false) }}
+          >
             <span className="material-symbols-outlined">dashboard</span>
             Dashboard
           </button>
-          <button className="sidebar-nav__link" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>
+          <button
+            className={`sidebar-nav__link${activeView === VIEW_AGENDA ? ' sidebar-nav__link--active' : ''}`}
+            onClick={() => { setActiveView(VIEW_AGENDA); setSidebarOpen(false) }}
+          >
             <span className="material-symbols-outlined">calendar_today</span>
-            Lịch
+            Lịch (Agenda)
           </button>
         </nav>
 
@@ -201,42 +303,101 @@ function App() {
 
         {/* Main */}
         <main className="app-main">
-          {/* Filter + Sort */}
-          <div className="app-controls">
-            <TaskFilter
-              search={filters.search}
-              status={filters.status}
-              onSearchChange={setSearch}
-              onStatusChange={setStatusFilter}
-            />
-            <SortSelector
-              sortBy={filters.sortBy}
-              sortDir={filters.sortDir}
-              onSortChange={setSort}
-            />
-          </div>
+          {/* ── Dashboard View ── */}
+          {activeView === VIEW_DASHBOARD && (
+            <>
+              {/* Filter + Sort */}
+              <div className="app-controls">
+                <TaskFilter
+                  search={filters.search}
+                  status={filters.status}
+                  onSearchChange={setSearch}
+                  onStatusChange={setStatusFilter}
+                />
+                <SortSelector
+                  sortBy={filters.sortBy}
+                  sortDir={filters.sortDir}
+                  onSortChange={setSort}
+                />
+              </div>
 
-          {/* Task List */}
-          <TaskList
-            tasks={tasks}
-            loading={loading}
-            error={error}
-            onEdit={setEditingTask}
-            onDelete={(id) => {
-              const task = tasks.find(t => t.id === id)
-              if (task) setDeletingTask(task)
-            }}
-            onToggle={handleToggle}
-            currentPage={pagination.page}
-            onResetPage={() => setPage(0)}
-          />
+              {/* Task List */}
+              <TaskList
+                tasks={tasks}
+                loading={loading}
+                error={error}
+                onEdit={setEditingTask}
+                onDelete={handleDelete}
+                onToggle={handleToggle}
+                currentPage={pagination.page}
+                onResetPage={() => setPage(0)}
+              />
 
-          {/* Pagination */}
-          <Pagination
-            currentPage={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={setPage}
-          />
+              {/* Pagination */}
+              <Pagination
+                currentPage={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+              />
+            </>
+          )}
+
+          {/* ── Agenda View ── */}
+          {activeView === VIEW_AGENDA && (
+            <>
+              <div className="agenda-header-bar flex items-center justify-center mb-6">
+                <div className="flex items-center gap-4 bg-surface-container-low rounded-full p-2 px-6 border border-outline-variant/30 shadow-sm">
+                  <button
+                    className="topbar-icon-btn hover:bg-surface-variant rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                    onClick={() => {
+                      const d = new Date(agendaStartDate + 'T00:00:00')
+                      d.setDate(d.getDate() - 7)
+                      const y = d.getFullYear()
+                      const m = String(d.getMonth() + 1).padStart(2, '0')
+                      const day = String(d.getDate()).padStart(2, '0')
+                      setAgendaStartDate(`${y}-${m}-${day}`)
+                    }}
+                    title="Tuần trước"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_left</span>
+                  </button>
+
+                  <div className="flex items-center gap-2 min-w-[280px] justify-center">
+                    <span className="material-symbols-outlined text-primary" style={{ fontSize: 20 }}>
+                      calendar_month
+                    </span>
+                    <h1 className="agenda-heading" style={{ fontSize: '18px', whiteSpace: 'nowrap' }}>
+                      Lịch trình 7 ngày (từ {formatDateDM(agendaStartDate)} đến {formatDateDM(agendaToDate)})
+                    </h1>
+                  </div>
+
+                  <button
+                    className="topbar-icon-btn hover:bg-surface-variant rounded-full w-8 h-8 flex items-center justify-center transition-colors"
+                    onClick={() => {
+                      const d = new Date(agendaStartDate + 'T00:00:00')
+                      d.setDate(d.getDate() + 7)
+                      const y = d.getFullYear()
+                      const m = String(d.getMonth() + 1).padStart(2, '0')
+                      const day = String(d.getDate()).padStart(2, '0')
+                      setAgendaStartDate(`${y}-${m}-${day}`)
+                    }}
+                    title="Tuần sau"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chevron_right</span>
+                  </button>
+                </div>
+              </div>
+
+              <AgendaView
+                groups={agendaGroups}
+                loading={agendaLoading}
+                error={agendaError}
+                onEdit={setEditingTask}
+                onDelete={handleDelete}
+                onToggle={handleToggle}
+              />
+            </>
+          )}
         </main>
       </div>
 
@@ -251,7 +412,7 @@ function App() {
           onSuccess={() => {
             showToast('Tạo công việc thành công!')
             setIsCreateOpen(false)
-            refetch()
+            refetchAll()
           }}
           onCancel={() => setIsCreateOpen(false)}
         />
@@ -270,12 +431,12 @@ function App() {
             onSuccess={() => {
               showToast('Cập nhật công việc thành công!')
               setEditingTask(null)
-              refetch()
+              refetchAll()
             }}
             onNotFound={() => {
               showToast('Công việc này không còn tồn tại, có thể đã bị xóa', 'error')
               setEditingTask(null)
-              refetch()
+              refetchAll()
             }}
             onCancel={() => setEditingTask(null)}
           />

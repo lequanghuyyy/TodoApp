@@ -1,10 +1,3 @@
-# ============================================================
-# application-prod.yml — Production Profile (Placeholder)
-# All values MUST be supplied via environment variables or
-# a secret management tool (Vault, AWS Secrets Manager, etc.)
-#
-# NEVER commit real credentials to this file.
-# ============================================================
 
 spring:
   datasource:
@@ -22,10 +15,9 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate    # NEVER use update/create in production
+      ddl-auto: validate   
     show-sql: false
 
-# ---- Actuator: restrict exposure in production ----
 management:
   endpoints:
     web:
@@ -45,7 +37,6 @@ server:
     include-message: never
 
 # ---- Swagger / OpenAPI ----
-# Expose tài liệu API chi tiết ở production là rủi ro bảo mật không cần thiết
 springdoc:
   api-docs:
     enabled: false

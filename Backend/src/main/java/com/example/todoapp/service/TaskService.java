@@ -2,11 +2,14 @@ package com.example.todoapp.service;
 
 import com.example.todoapp.constant.TaskSortField;
 import com.example.todoapp.constant.TaskStatus;
+import com.example.todoapp.dto.request.TaskRequestDTO;
 import com.example.todoapp.dto.response.PageResponseDTO;
+import com.example.todoapp.dto.response.TaskByDateGroupDTO;
 import com.example.todoapp.dto.response.TaskResponseDTO;
 import org.springframework.data.domain.Sort;
 
-import com.example.todoapp.dto.request.TaskRequestDTO;
+import java.time.LocalDate;
+import java.util.List;
 
 public interface TaskService {
 
@@ -64,5 +67,22 @@ public interface TaskService {
      * @return TaskResponseDTO sau khi đổi trạng thái.
      */
     TaskResponseDTO toggleStatus(Long id);
-}
 
+    /**
+     * Lấy task nhóm theo ngày trong khoảng [fromDate, toDate].
+     *
+     * <p>Quy tắc:
+     * <ul>
+     *   <li>Khoảng cách tối đa 90 ngày — throw {@link IllegalArgumentException} nếu vượt.</li>
+     *   <li>fromDate phải &lt;= toDate — throw nếu ngược.</li>
+     *   <li>Mỗi ngày trong khoảng đều xuất hiện trong kết quả, kể cả ngày trống (tasks=[]).</li>
+     *   <li>Kết quả sắp xếp tăng dần theo ngày.</li>
+     *   <li>@SQLRestriction tự động loại soft-deleted task.</li>
+     * </ul>
+     *
+     * @param fromDate ngày bắt đầu (inclusive)
+     * @param toDate   ngày kết thúc (inclusive)
+     * @return danh sách nhóm theo ngày, mỗi phần tử ứng với 1 ngày trong khoảng
+     */
+    List<TaskByDateGroupDTO> getTasksByDateRange(LocalDate fromDate, LocalDate toDate);
+}

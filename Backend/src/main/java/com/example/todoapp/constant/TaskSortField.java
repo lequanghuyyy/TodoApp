@@ -19,7 +19,14 @@ public enum TaskSortField {
     CREATED_AT("createdAt"),
     TITLE("title"),
     PRIORITY("priority"),
-    STATUS("status");
+    STATUS("status"),
+
+    /**
+     * Sắp xếp theo ngày dự kiến hoàn thành.
+     * Khi dùng giá trị này, service sẽ áp dụng NULLS LAST thủ công
+     * (task không có deadline luôn xếp cuối, bất kể ASC/DESC).
+     */
+    DUE_DATE("dueDate");
 
     private final String fieldName;
 

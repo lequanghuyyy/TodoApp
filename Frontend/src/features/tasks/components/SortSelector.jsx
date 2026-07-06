@@ -21,6 +21,7 @@ const SortSelector = ({ sortBy, sortDir, onSortChange }) => {
         <option value="CREATED_AT">Ngày tạo</option>
         <option value="TITLE">Tiêu đề</option>
         <option value="PRIORITY">Độ ưu tiên</option>
+        <option value="DUE_DATE">Hạn hoàn thành</option>
       </select>
       <button
         type="button"

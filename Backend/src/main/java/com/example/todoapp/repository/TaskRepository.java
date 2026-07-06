@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +28,11 @@ public interface TaskRepository extends JpaRepository<Task, Long>, JpaSpecificat
     @Modifying
     @Query("UPDATE Task t SET t.deletedAt = :now WHERE t.id = :id AND t.deletedAt IS NULL")
     int softDeleteById(@Param("id") Long id, @Param("now") LocalDateTime now);
+
+    /**
+     * Lấy task có dueDate trong khoảng [fromDate, toDate], sắp xếp tăng dần.
+     *
+     * <p>@SQLRestriction trên entity tự động lọc soft-deleted — không cần thêm điều kiện deleted_at.
+     */
+    List<Task> findByDueDateBetweenOrderByDueDateAsc(LocalDate fromDate, LocalDate toDate);
 }

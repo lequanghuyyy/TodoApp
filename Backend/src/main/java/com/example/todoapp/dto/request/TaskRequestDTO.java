@@ -6,6 +6,8 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
+
 @Getter
 @Setter
 public class TaskRequestDTO {
@@ -19,4 +21,11 @@ public class TaskRequestDTO {
 
     // Nullable — service sẽ set MEDIUM nếu null
     private Priority priority;
+
+    /**
+     * Ngày dự kiến hoàn thành. Nullable — để trống = không có deadline.
+     * Cho phép ngày quá khứ có chủ đích.
+     * Nếu sai định dạng, GlobalExceptionHandler bắt HttpMessageNotReadableException → 400.
+     */
+    private LocalDate dueDate;
 }

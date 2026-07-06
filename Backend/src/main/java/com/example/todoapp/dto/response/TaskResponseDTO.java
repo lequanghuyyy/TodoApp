@@ -5,6 +5,7 @@ import com.example.todoapp.constant.TaskStatus;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -16,6 +17,7 @@ public class TaskResponseDTO {
     private String description;
     private TaskStatus status;
     private Priority priority;
+    private LocalDate dueDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

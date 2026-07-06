@@ -4,11 +4,13 @@ import com.example.todoapp.constant.TaskSortField;
 import com.example.todoapp.constant.TaskStatus;
 import com.example.todoapp.dto.request.TaskRequestDTO;
 import com.example.todoapp.dto.response.PageResponseDTO;
+import com.example.todoapp.dto.response.TaskByDateGroupDTO;
 import com.example.todoapp.dto.response.TaskResponseDTO;
 import com.example.todoapp.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,6 +29,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.util.List;
 
 import static com.example.todoapp.constant.ApiConstants.DEFAULT_PAGE_SIZE;
 
@@ -161,5 +165,36 @@ public class TaskController {
     public ResponseEntity<TaskResponseDTO> toggleStatus(@PathVariable Long id) {
         TaskResponseDTO updated = taskService.toggleStatus(id);
         return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * GET /api/tasks/by-date — Xem công việc theo khoảng ngày (dùng cho Agenda View).
+     *
+     * <p>Query params:
+     * <ul>
+     *   <li>{@code fromDate} — ngày bắt đầu (yyyy-MM-dd, bắt buộc)</li>
+     *   <li>{@code toDate}   — ngày kết thúc (yyyy-MM-dd, bắt buộc)</li>
+     * </ul>
+     *
+     * <p>Trả về danh sách nhóm theo ngày, MỖI ngày trong khoảng đều xuất hiện
+     * (kể cả ngày không có task — tasks=[]).
+     *
+     * <p>Lỗi 400:
+     * <ul>
+     *   <li>fromDate &gt; toDate</li>
+     *   <li>Khoảng cách &gt; 90 ngày</li>
+     *   <li>Sai định dạng date (Spring parse lỗi → MethodArgumentTypeMismatchException)</li>
+     * </ul>
+     */
+    @Operation(summary = "Lấy task nhóm theo ngày", description = "Trả task nhóm theo dueDate trong khoảng fromDate–toDate. Mỗi ngày đều xuất hiện dù trống.")
+    @ApiResponse(responseCode = "200", description = "Thành công")
+    @ApiResponse(responseCode = "400", description = "Tham số không hợp lệ")
+    @GetMapping("/by-date")
+    public ResponseEntity<List<TaskByDateGroupDTO>> getTasksByDate(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate
+    ) {
+        List<TaskByDateGroupDTO> result = taskService.getTasksByDateRange(fromDate, toDate);
+        return ResponseEntity.ok(result);
     }
 }

@@ -55,5 +55,16 @@ public class TaskDeleteTest {
         });
 
         assertTrue(ex.getMessage().contains("Không tìm thấy công việc với id: " + taskId));
+
+        // 4. Verify dữ liệu vẫn còn vật lý trong DB (native query bypass @SQLRestriction)
+        Object physicalCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM tasks WHERE id = :id")
+                .setParameter("id", taskId)
+                .getSingleResult();
+        assertEquals(1L, ((Number) physicalCount).longValue(), "Dữ liệu vật lý phải còn tồn tại trong bảng tasks");
+
+        Object deletedAt = entityManager.createNativeQuery("SELECT deleted_at FROM tasks WHERE id = :id")
+                .setParameter("id", taskId)
+                .getSingleResult();
+        assertNotNull(deletedAt, "Trường deleted_at phải được set != null");
     }
 }

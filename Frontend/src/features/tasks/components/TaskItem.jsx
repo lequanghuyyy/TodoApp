@@ -4,18 +4,25 @@
  * Hiển thị 1 task card với:
  * - Toggle button tròn (fill blue khi completed)
  * - Title, description (CSS line-clamp 2 dòng)
- * - Badge trạng thái + badge priority (pill-shaped)
+ * - Badge trạng thái + badge priority + badge hạn hoàn thành (pill-shaped)
  * - Ngày tạo format tiếng Việt (Intl.DateTimeFormat)
  * - Nút Edit / Delete — chỉ hiện khi hover
+ * - Badge "Quá hạn" đỏ nếu dueDate đã qua và task chưa COMPLETED
  */
 
-// ── Date formatter ─────────────────────────────────────────────
-const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
+// ── Date formatters ─────────────────────────────────────────────
+const DATETIME_FMT = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+})
+
+const DATE_FMT = new Intl.DateTimeFormat('vi-VN', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
 })
 
 // ── Badge metadata ──────────────────────────────────────────────
@@ -43,14 +50,39 @@ const CheckIcon = () => (
   </svg>
 )
 
+// ── Due date badge helper ────────────────────────────────────────
+/**
+ * Tính trạng thái badge hạn hoàn thành.
+ * @param {string|null} dueDate - 'YYYY-MM-DD' hoặc null
+ * @param {string} status - 'PENDING' | 'COMPLETED'
+ * @returns {{ label: string, cls: string } | null}
+ */
+function getDueDateBadge(dueDate, status) {
+  if (!dueDate) return null
+
+  const dueDateObj = new Date(dueDate + 'T00:00:00')  // parse as local date
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const isOverdue = dueDateObj < today && status !== 'COMPLETED'
+  const label = 'Hạn: ' + DATE_FMT.format(dueDateObj)
+
+  return {
+    label,
+    cls: isOverdue ? 'badge--overdue' : 'badge--due-date',
+  }
+}
+
 // ── Component ───────────────────────────────────────────────────
 const TaskItem = ({ task, onEdit, onDelete, onToggle }) => {
   const isCompleted = task.status === 'COMPLETED'
   const status   = STATUS_META[task.status]   ?? STATUS_META.PENDING
   const priority = PRIORITY_META[task.priority] ?? null
   const createdAt = task.createdAt
-    ? DATE_FMT.format(new Date(task.createdAt))
+    ? DATETIME_FMT.format(new Date(task.createdAt))
     : '—'
+
+  const dueDateBadge = getDueDateBadge(task.dueDate, task.status)
 
   return (
     <li className={`task-item${isCompleted ? ' task-item--completed' : ''}`}>
@@ -84,6 +116,16 @@ const TaskItem = ({ task, onEdit, onDelete, onToggle }) => {
           {/* Priority badge */}
           {priority && (
             <span className={`badge ${priority.cls}`}>{priority.label}</span>
+          )}
+
+          {/* Due date badge — chỉ hiện khi có dueDate */}
+          {dueDateBadge && (
+            <span className={`badge ${dueDateBadge.cls}`}>
+              <span className="material-symbols-outlined" style={{ fontSize: 11, marginRight: 3 }}>
+                {dueDateBadge.cls === 'badge--overdue' ? 'warning' : 'event'}
+              </span>
+              {dueDateBadge.label}
+            </span>
           )}
 
           {/* Date */}

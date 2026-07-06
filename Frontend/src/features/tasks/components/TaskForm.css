@@ -242,3 +242,64 @@
   color: var(--color-outline);
   cursor: not-allowed;
 }
+
+/* ── Due Date input row ───────────────────────────────────── */
+.task-form__due-date-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.task-form__input-date {
+  flex: 1;
+  background: var(--color-surface-low);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--color-on-surface);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+
+.task-form__input-date:focus {
+  background: var(--color-surface-lowest);
+  border-color: var(--color-outline-variant);
+  box-shadow: 0 0 0 3px rgba(0, 82, 255, 0.08);
+}
+
+.task-form__input-date:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Clear (Xóa) button */
+.task-form__due-clear {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--color-surface-high);
+  color: var(--color-on-surface-variant);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.task-form__due-clear:hover:not(:disabled) {
+  background: var(--color-error-container);
+  color: var(--color-error);
+}
+
+.task-form__due-clear:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
