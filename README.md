@@ -132,7 +132,6 @@ Base path của ứng dụng là: `/api`. Chi tiết các endpoint:
 ## Swagger UI
 Bạn có thể xem document chi tiết và test trực tiếp các API thông qua giao diện Swagger UI sinh tự động tại link sau:
 - Chạy thủ công: [http://localhost:8080/api/swagger-ui.html](http://localhost:8080/api/swagger-ui.html)
-*(Theo yêu cầu cấu hình context-path của Spring Boot).*
 
 ## Troubleshooting
 Một số lỗi thường gặp và cách xử lý:
